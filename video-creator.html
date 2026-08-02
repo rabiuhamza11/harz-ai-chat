@@ -20,8 +20,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
 .section h3 { font-size:14px; color:var(--accent); margin-bottom:10px; }
 label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px; }
-input[type="text"], textarea, select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:14px; font-family:inherit; margin-bottom:10px; outline:none; }
-input[type="text"]:focus, textarea:focus { border-color:var(--accent); }
+input[type="text"], input[type="number"], textarea, select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:14px; font-family:inherit; margin-bottom:10px; outline:none; }
+input[type="text"]:focus, input[type="number"]:focus, textarea:focus { border-color:var(--accent); }
 textarea { resize:vertical; min-height:60px; }
 .btn { background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; width:100%; }
 .btn:active { background:#4a42d4; }
@@ -45,6 +45,10 @@ textarea { resize:vertical; min-height:60px; }
 .status.recording { color:#ff4444; }
 .preset-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:8px; font-size:11px; cursor:pointer; margin:2px; display:inline-block; }
 .preset-btn:active { border-color:var(--accent); color:var(--accent); }
+.dur-row { display:flex; gap:8px; align-items:center; }
+.dur-row select { flex:1; margin-bottom:0; }
+.dur-row input { width:70px; margin-bottom:0; }
+.total-dur { font-size:12px; color:var(--green); margin-top:6px; font-weight:600; }
 ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
@@ -65,13 +69,26 @@ textarea { resize:vertical; min-height:60px; }
       <option value="9:16">9:16 (TikTok/Reels/Portrait)</option>
       <option value="1:1">1:1 (Instagram Square)</option>
     </select>
-    <label>Duration per slide (seconds)</label>
-    <select id="slideDur">
-      <option value="2">2 seconds</option>
-      <option value="3" selected>3 seconds</option>
-      <option value="4">4 seconds</option>
-      <option value="5">5 seconds</option>
-    </select>
+    <label>Duration per slide</label>
+    <div class="dur-row">
+      <select id="slideDur">
+        <option value="2">2 seconds</option>
+        <option value="3" selected>3 seconds</option>
+        <option value="4">4 seconds</option>
+        <option value="5">5 seconds</option>
+        <option value="10">10 seconds</option>
+        <option value="15">15 seconds</option>
+        <option value="20">20 seconds</option>
+        <option value="30">30 seconds</option>
+        <option value="60">1 minute</option>
+        <option value="90">1 min 30 sec</option>
+        <option value="120">2 minutes</option>
+        <option value="180">3 minutes</option>
+        <option value="300">5 minutes</option>
+      </select>
+      <input type="number" id="customDur" placeholder="Custom (sec)" min="1" max="600" style="width:90px">
+    </div>
+    <div class="total-dur" id="totalDur">Total: 0s</div>
   </div>
 
   <div class="section">
@@ -80,6 +97,8 @@ textarea { resize:vertical; min-height:60px; }
     <span class="preset-btn" onclick="loadPreset('sale')">🔥 Sale Post</span>
     <span class="preset-btn" onclick="loadPreset('intro')">👋 Brand Intro</span>
     <span class="preset-btn" onclick="loadPreset('quote')">💬 Quote Video</span>
+    <span class="preset-btn" onclick="loadPreset('tutorial')">📚 Tutorial</span>
+    <span class="preset-btn" onclick="loadPreset('story')">📖 Story</span>
   </div>
 
   <div class="section">
@@ -110,8 +129,29 @@ function init() {
   canvas = document.getElementById('previewCanvas');
   ctx = canvas.getContext('2d');
   updateCanvasSize();
-  addSlide(); // Start with one slide
+  addSlide();
   drawPreview(0);
+  updateTotalDuration();
+}
+
+function getSlideDuration() {
+  const custom = document.getElementById('customDur').value;
+  if (custom && parseInt(custom) > 0) return parseInt(custom);
+  return parseInt(document.getElementById('slideDur').value);
+}
+
+function formatDuration(sec) {
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s > 0 ? m + 'm ' + s + 's' : m + 'm';
+}
+
+function updateTotalDuration() {
+  const perSlide = getSlideDuration();
+  const titleAdd = document.getElementById('vidTitle').value ? 2 : 0;
+  const total = (slides.length * perSlide) + titleAdd + 2;
+  document.getElementById('totalDur').textContent = 'Total: ' + formatDuration(total) + ' (' + slides.length + ' slides)';
 }
 
 function updateCanvasSize() {
@@ -126,12 +166,14 @@ function addSlide(text = '', subtitle = '', image = null, bgColor = '#1a1a2e') {
   slides.push(slide);
   renderSlides();
   drawPreview(slides.length - 1);
+  updateTotalDuration();
 }
 
 function deleteSlide(id) {
   slides = slides.filter(s => s.id !== id);
   renderSlides();
   if (slides.length > 0) drawPreview(0);
+  updateTotalDuration();
 }
 
 function updateSlide(id, field, value) {
@@ -197,18 +239,15 @@ function drawPreview(idx) {
 }
 
 function drawSlide(slide, progress) {
-  // Background
   ctx.fillStyle = slide.bgColor || '#1a1a2e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Gradient overlay
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
   grad.addColorStop(0, 'rgba(108,99,255,0.15)');
   grad.addColorStop(1, 'rgba(0,212,160,0.1)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Image
   if (slide.image) {
     const img = new Image();
     img.src = slide.image;
@@ -227,25 +266,21 @@ function drawSlide(slide, progress) {
     } catch(e) {}
   }
 
-  // Text
   const fontSize = Math.round(canvas.width / 18);
   ctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  
-  // Fade in text
+
   const textY = slide.image ? canvas.height * 0.75 : canvas.height * 0.4;
   ctx.globalAlpha = Math.min(progress * 1.5, 1);
   ctx.fillText(slide.text || '', canvas.width / 2, textY);
-  
-  // Subtitle
+
   if (slide.subtitle) {
     ctx.font = `${Math.round(fontSize * 0.6)}px sans-serif`;
     ctx.fillStyle = '#00d4a0';
     ctx.fillText(slide.subtitle, canvas.width / 2, textY + fontSize * 0.9);
   }
-  
-  // Watermark
+
   ctx.globalAlpha = 0.5;
   ctx.font = `${Math.round(fontSize * 0.35)}px sans-serif`;
   ctx.fillStyle = '#888';
@@ -260,66 +295,61 @@ async function generateVideo() {
   isGenerating = true;
   document.getElementById('genBtn').disabled = true;
   document.getElementById('status').className = 'status recording';
-  document.getElementById('status').textContent = '🔴 Recording... ' + slides.length + ' slides';
+
+  const slideDur = getSlideDuration();
+  const totalSec = (slides.length * slideDur) + (document.getElementById('vidTitle').value ? 2 : 0) + 2;
+  document.getElementById('status').textContent = `🔴 Recording... ${formatDuration(totalSec)} total`;
 
   chunks = [];
   const stream = canvas.captureStream(30);
-  
-  // Try different mime types
+
   let mimeType = 'video/webm;codecs=vp9';
   if (!MediaRecorder.isTypeSupported(mimeType)) {
     mimeType = 'video/webm;codecs=vp8';
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
-      mimeType = 'video/webm';
-    }
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
   }
-  
+
   mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3000000 });
-  
-  mediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) chunks.push(e.data);
-  };
-  
+
+  mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
   mediaRecorder.onstop = () => {
     const blob = new Blob(chunks, { type: 'video/webm' });
     const url = URL.createObjectURL(blob);
     const title = document.getElementById('vidTitle').value || 'harz-video';
-    
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+
     document.getElementById('result').innerHTML = `
       <h3 style="color:var(--accent);font-size:14px;margin-bottom:8px">✅ Video Ready!</h3>
       <video src="${url}" controls autoplay loop></video>
-      <br>
+      <p style="font-size:12px;color:var(--text-dim);margin:6px 0">${formatDuration(totalSec)} • ${sizeMB}MB • ${slides.length} slides</p>
       <a href="${url}" download="${title}.webm" class="download-btn">⬇ Download Video</a>
     `;
-    
+
     isGenerating = false;
     document.getElementById('genBtn').disabled = false;
     document.getElementById('status').className = 'status';
-    document.getElementById('status').textContent = '✅ Video generated! ' + slides.length + ' slides';
+    document.getElementById('status').textContent = '✅ ' + formatDuration(totalSec) + ' video generated!';
   };
-  
+
   mediaRecorder.start();
-  
-  // Play through slides
-  const slideDur = parseInt(document.getElementById('slideDur').value) * 1000;
+
+  const slideDurMs = slideDur * 1000;
   const titleText = document.getElementById('vidTitle').value;
-  
-  // Title slide
+
   if (titleText) {
     drawTitleSlide(titleText);
     await sleep(2000);
   }
-  
-  // Draw each slide with animation
+
   for (let i = 0; i < slides.length; i++) {
-    document.getElementById('status').textContent = `🔴 Recording slide ${i + 1}/${slides.length}...`;
-    await animateSlide(slides[i], slideDur);
+    document.getElementById('status').textContent = `🔴 Recording slide ${i + 1}/${slides.length} (${formatDuration(slideDur)} each)...`;
+    await animateSlide(slides[i], slideDurMs);
   }
-  
-  // End slide
+
   drawEndSlide();
   await sleep(2000);
-  
+
   mediaRecorder.stop();
 }
 
@@ -331,13 +361,13 @@ function drawTitleSlide(title) {
   grad.addColorStop(1, 'rgba(26,26,46,1)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
+
   const fontSize = Math.round(canvas.width / 12);
   ctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
   ctx.fillText(title, canvas.width / 2, canvas.height / 2);
-  
+
   ctx.font = `${Math.round(fontSize * 0.35)}px sans-serif`;
   ctx.fillStyle = '#00d4a0';
   ctx.fillText('HARZ Digital Services', canvas.width / 2, canvas.height / 2 + fontSize);
@@ -351,24 +381,24 @@ function drawEndSlide() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#00d4a0';
   ctx.fillText('Thank You!', canvas.width / 2, canvas.height * 0.4);
-  
+
   ctx.font = `${Math.round(fontSize * 0.5)}px sans-serif`;
   ctx.fillStyle = '#fff';
   ctx.fillText('Get yours today', canvas.width / 2, canvas.height * 0.55);
-  
+
   ctx.font = `${Math.round(fontSize * 0.4)}px sans-serif`;
   ctx.fillStyle = '#6c63ff';
   ctx.fillText('hamzarabiu.gumroad.com', canvas.width / 2, canvas.height * 0.68);
-  
+
   ctx.font = `${Math.round(fontSize * 0.3)}px sans-serif`;
   ctx.fillStyle = '#888';
   ctx.fillText('HARZ Digital Services', canvas.width / 2, canvas.height - 40);
 }
 
 async function animateSlide(slide, duration) {
-  const steps = 60;
+  const steps = Math.min(60, Math.max(20, Math.floor(duration / 50)));
   const stepDur = duration / steps;
-  
+
   for (let i = 0; i <= steps; i++) {
     const progress = i / steps;
     drawSlide(slide, progress);
@@ -378,25 +408,27 @@ async function animateSlide(slide, duration) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// Presets
 function loadPreset(type) {
   slides = [];
   document.getElementById('vidTitle').value = '';
-  
+
   if (type === 'promo') {
     document.getElementById('vidTitle').value = 'HARZ Digital Learning';
+    document.getElementById('slideDur').value = '5';
     addSlide('Learn Python Programming', 'Only N2,500', null, '#1a1a2e');
     addSlide('Master Graphic Design with Canva', 'N2,500 only', null, '#16213e');
     addSlide('Complete 12-Book Bundle', 'N6,000 (Save N30,000!)', null, '#0f3460');
     addSlide('Get Yours Today', 'hamzarabiu.gumroad.com', null, '#1a1a2e');
   } else if (type === 'sale') {
     document.getElementById('vidTitle').value = '🔥 BIG SALE';
+    document.getElementById('slideDur').value = '5';
     addSlide('50% OFF This Week Only!', '', null, '#e74c3c');
     addSlide('All Digital Products', 'N2,000 - N5,000', null, '#c0392b');
     addSlide('12 Books Bundle', 'N6,000 instead of N30,000', null, '#e67e22');
     addSlide('Buy Now!', 'Pay: UBA 2034326424', null, '#e74c3c');
   } else if (type === 'intro') {
     document.getElementById('vidTitle').value = 'HARZ Digital Services';
+    document.getElementById('slideDur').value = '5';
     addSlide('We are HARZ', 'Digital Solutions for Africa', null, '#1a1a2e');
     addSlide('300+ Digital Products', '45 Categories', null, '#16213e');
     addSlide('10 Platforms', 'One Ecosystem', null, '#0f3460');
@@ -404,22 +436,39 @@ function loadPreset(type) {
     addSlide('Join Us Today', 'harzdm.vercel.app', null, '#1a1a2e');
   } else if (type === 'quote') {
     document.getElementById('vidTitle').value = '';
+    document.getElementById('slideDur').value = '10';
     addSlide('"Ilimi shine makamin manja"', '', null, '#2c3e50');
     addSlide('"Education is the most powerful weapon"', '— Nelson Mandela', null, '#34495e');
     addSlide('"Knowledge is power"', '— Francis Bacon', null, '#2c3e50');
     addSlide('Start Learning Today', 'HARZ Digital Learning', null, '#1a1a2e');
+  } else if (type === 'tutorial') {
+    document.getElementById('vidTitle').value = 'HARZ Tutorial';
+    document.getElementById('slideDur').value = '30';
+    addSlide('Step 1: Choose Your Product', 'Browse 300+ digital products', null, '#1a1a2e');
+    addSlide('Step 2: Click Buy', 'Select payment method', null, '#16213e');
+    addSlide('Step 3: Pay', 'UBA, Paystack, GDEG, or Crypto', null, '#0f3460');
+    addSlide('Step 4: Download', 'Get your product instantly', null, '#533483');
+    addSlide('Done!', 'hamzarabiu.gumroad.com', null, '#1a1a2e');
+  } else if (type === 'story') {
+    document.getElementById('vidTitle').value = 'The HARZ Story';
+    document.getElementById('slideDur').value = '15';
+    addSlide('It started with a dream...', 'One man, one vision', null, '#1a1a2e');
+    addSlide('Rabiu Hamza Mohammed', 'Founder of HARZ', null, '#16213e');
+    addSlide('From Bauchi to the world', 'Digital empowerment for Africa', null, '#0f3460');
+    addSlide('300+ products later...', 'And 10 platforms', null, '#533483');
+    addSlide('This is just the beginning', 'Join us at harzdm.vercel.app', null, '#1a1a2e');
   }
-  
+
   document.getElementById('aspect').value = '9:16';
   updateCanvasSize();
   drawPreview(0);
+  updateTotalDuration();
 }
 
-// Init
-document.getElementById('aspect').addEventListener('change', () => {
-  updateCanvasSize();
-  drawPreview(0);
-});
+document.getElementById('aspect').addEventListener('change', () => { updateCanvasSize(); drawPreview(0); });
+document.getElementById('slideDur').addEventListener('change', updateTotalDuration);
+document.getElementById('customDur').addEventListener('input', updateTotalDuration);
+document.getElementById('vidTitle').addEventListener('input', updateTotalDuration);
 
 init();
 </script>
