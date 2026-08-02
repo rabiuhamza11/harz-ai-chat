@@ -109,7 +109,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <div class="chat-list" id="cl"></div>
   <div class="agents-link">HARZ AI Agents:<br><a href="hauwa.html">Hauwa - Marketing</a><a href="rabi.html">Rabi - Finance</a><a href="nuruddeen.html">Nuruddeen - Knowledge</a><a href="hamza.html">Hamza - Code</a><a href="aisha.html">Aisha - Support</a><a href="talle.html">Talle - Market</a></div>
   <a href="video-creator.html" style="display:block;padding:10px 12px;color:var(--accent);text-decoration:none;font-size:13px;border-top:1px solid var(--border)">🎬 Video Creator</a>
-  <div style="padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)">Powered by Claude Sonnet 5 + Qwen<br>HARZ Digital Services</div>
+  <div style="padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)">Powered by Nemotron 550B + Claude<br>HARZ Digital Services</div>
 </div>
 <div class="overlay" id="ov" onclick="toggleSb()"></div>
 
@@ -118,17 +118,17 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <span class="logo">🤖</span>
   <span class="name">HARZ AI</span>
   <select class="model-sel" id="mdl">
-    <option value="">Claude Sonnet 5</option>
+    <option value="nvidia/nemotron-3-ultra-550b-a55b:free">Nemotron 550B (FREE)</option>
+    <option value="nvidia/nemotron-3-super-120b-a12b:free">Nemotron 120B (FREE)</option>
+    <option value="openai/gpt-oss-20b:free">GPT-OSS (FREE)</option>
+    <option value="anthropic/claude-sonnet-5">Claude Sonnet 5</option>
     <option value="anthropic/claude-3-haiku">Claude Haiku</option>
     <option value="qwen/qwen3.7-flash">Qwen Flash</option>
     <option value="qwen/qwen3.7-plus">Qwen Plus</option>
     <option value="deepseek/deepseek-v4-flash-latest">DeepSeek</option>
-    <option value="openai/gpt-oss-20b:free">GPT-OSS (Free)</option>
     <option value="gpt-5">GPT-5</option>
     <option value="gpt-4o">GPT-4o</option>
     <option value="gpt-4o-mini">GPT-4o Mini</option>
-    <option value="o3">o3 Reasoning</option>
-    <option value="o4-mini">o4 Mini</option>
   </select>
   <div class="spacer"></div>
   <button class="icon-btn" onclick="toggleTheme()" id="tb">&#9790;</button>
@@ -334,7 +334,7 @@ function newChat() {
   renderList(); save();
 }
 function showWelcome() {
-  document.getElementById("ca").innerHTML = '<div class="welcome"><div class="big-emoji">🤖</div><h2>HARZ AI</h2><div class="sub">General Assistant</div><p>Claude Sonnet 5 | Qwen | GPT-5 | Voice | PDF | Image</p><div class="chips">' + SUGGESTIONS.map(s => '<div class="chip" onclick="useSug(this)">'+s+'</div>').join('') + '</div></div>';
+  document.getElementById("ca").innerHTML = '<div class="welcome"><div class="big-emoji">🤖</div><h2>HARZ AI</h2><div class="sub">General Assistant</div><p>Nemotron 550B | Claude | GPT | Voice | PDF | Image | Video</p><div class="chips">' + SUGGESTIONS.map(s => '<div class="chip" onclick="useSug(this)">'+s+'</div>').join('') + '</div></div>';
 }
 function useSug(el) { document.getElementById("inp").value = el.textContent; document.getElementById("inp").focus(); }
 function renderList() {
