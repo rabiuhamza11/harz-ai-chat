@@ -6,67 +6,101 @@
 <meta name="theme-color" content="#1a1a2e">
 <title>HARZ AI</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
 :root {
-  --bg: #0f0f1a; --surface: #1a1a2e; --surface2: #16213e;
-  --border: #2a2a4a; --text: #e4e4ef; --text-dim: #8888a4;
-  --accent: #6c63ff; --user-bg: #6c63ff; --ai-bg: #1e1e36;
-  --green: #00d4a0; --radius: 14px;
+  --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#16213e;
+  --border:#2a2a4a; --text:#e4e4ef; --text-dim:#8888a4;
+  --accent:#6c63ff; --user-bg:#6c63ff; --ai-bg:#1e1e36;
+  --green:#00d4a0; --radius:14px;
 }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.logo { font-weight: 700; font-size: 18px; color: var(--accent); }
-.logo span { color: var(--green); }
-.model-sel { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; font-size: 12px; cursor: pointer; outline: none; max-width: 120px; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-left: auto; flex-shrink: 0; }
-.status-dot.red { background: #ff4444; }
-.chat-area { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
-.msg { max-width: 88%; padding: 10px 14px; border-radius: var(--radius); font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; animation: fadeIn 0.2s ease; }
-@keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
-.msg.user { align-self: flex-end; background: var(--user-bg); color: white; border-bottom-right-radius: 4px; }
-.msg.ai { align-self: flex-start; background: var(--ai-bg); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-.msg-role { font-size: 10px; color: var(--text-dim); margin-bottom: 3px; font-weight: 600; letter-spacing: 0.5px; }
-.msg.user .msg-role { color: rgba(255,255,255,0.6); }
-.welcome { text-align: center; padding: 30px 16px; color: var(--text-dim); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.welcome h2 { color: var(--text); font-size: 20px; margin-bottom: 6px; }
-.welcome p { font-size: 13px; margin-bottom: 18px; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.chip { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; }
-.chip:active { background: var(--accent); color: white; border-color: var(--accent); }
-.typing { display: inline-flex; gap: 5px; padding: 2px 0; }
-.typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); animation: bounce 1.2s infinite; }
-.typing span:nth-child(2) { animation-delay: 0.2s; }
-.typing span:nth-child(3) { animation-delay: 0.4s; }
+[data-theme="light"] {
+  --bg:#f5f5f7; --surface:#ffffff; --surface2:#f0f0f5;
+  --border:#e0e0e8; --text:#1a1a2e; --text-dim:#666680;
+  --ai-bg:#f0f0f5;
+}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:10px 14px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.logo { font-weight:700; font-size:18px; color:var(--accent); }
+.logo span { color:var(--green); }
+.model-sel { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-size:12px; cursor:pointer; outline:none; max-width:130px; }
+.spacer { flex:1; }
+.icon-btn { background:none; border:none; color:var(--text-dim); cursor:pointer; padding:6px; border-radius:8px; font-size:18px; }
+.icon-btn:active { background:var(--surface2); }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.status-dot.red { background:#ff4444; }
+.chat-area { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch; }
+.msg { max-width:88%; padding:10px 14px; border-radius:var(--radius); font-size:15px; line-height:1.5; white-space:pre-wrap; word-wrap:break-word; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.msg.user { align-self:flex-end; background:var(--user-bg); color:white; border-bottom-right-radius:4px; }
+.msg.ai { align-self:flex-start; background:var(--ai-bg); border:1px solid var(--border); border-bottom-left-radius:4px; }
+.msg-role { font-size:10px; color:var(--text-dim); margin-bottom:3px; font-weight:600; letter-spacing:.5px; }
+.msg.user .msg-role { color:rgba(255,255,255,.6); }
+.welcome { text-align:center; padding:30px 16px; color:var(--text-dim); flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.welcome h2 { color:var(--text); font-size:22px; margin-bottom:6px; }
+.welcome .tag { font-size:12px; color:var(--accent); margin-bottom:16px; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.chip { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:8px 14px; border-radius:20px; font-size:13px; cursor:pointer; }
+.chip:active { background:var(--accent); color:white; border-color:var(--accent); }
+.typing { display:inline-flex; gap:5px; padding:2px 0; }
+.typing span { width:8px; height:8px; border-radius:50%; background:var(--text-dim); animation:bounce 1.2s infinite; }
+.typing span:nth-child(2){animation-delay:.2s} .typing span:nth-child(3){animation-delay:.4s}
 @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
-.input-area { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 12px; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
-.input-wrap { flex: 1; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 22px; display: flex; align-items: flex-end; padding: 6px 6px 6px 14px; }
-.input-wrap:focus-within { border-color: var(--accent); }
-#inp { flex:1; background:none; border:none; color:var(--text); font-size:15px; font-family:inherit; resize:none; outline:none; max-height:100px; min-height:22px; padding: 4px 0; line-height:1.4; }
-#inp::placeholder { color: var(--text-dim); }
-#send { background: var(--accent); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-#send:disabled { opacity: 0.35; }
-.retry-btn { background: var(--accent); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; margin-top: 6px; }
+.input-area { background:var(--surface); border-top:1px solid var(--border); padding:10px 12px; display:flex; gap:8px; align-items:flex-end; flex-shrink:0; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); }
+.input-wrap { flex:1; background:var(--surface2); border:1.5px solid var(--border); border-radius:22px; display:flex; align-items:flex-end; padding:6px 6px 6px 14px; }
+.input-wrap:focus-within { border-color:var(--accent); }
+#inp { flex:1; background:none; border:none; color:var(--text); font-size:15px; font-family:inherit; resize:none; outline:none; max-height:100px; min-height:22px; padding:4px 0; line-height:1.4; }
+#inp::placeholder { color:var(--text-dim); }
+#send { background:var(--accent); color:white; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+#send:disabled { opacity:.35; }
+.retry-btn { background:var(--accent); color:white; border:none; padding:6px 14px; border-radius:8px; font-size:13px; cursor:pointer; margin-top:6px; }
+.sidebar { position:fixed; top:0; left:0; width:240px; height:100dvh; background:var(--surface); border-right:1px solid var(--border); transform:translateX(-100%); transition:transform .3s ease; z-index:100; display:flex; flex-direction:column; }
+.sidebar.open { transform:translateX(0); }
+.sidebar-h { padding:14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.sidebar-h h3 { color:var(--accent); font-size:16px; }
+.new-chat { background:var(--accent); color:white; border:none; padding:10px 16px; border-radius:10px; font-size:14px; cursor:pointer; margin:12px; font-weight:600; }
+.new-chat:active { background:#4a42d4; }
+.chat-list { flex:1; overflow-y:auto; padding:0 12px; }
+.chat-item { padding:10px 12px; border-radius:8px; cursor:pointer; font-size:14px; color:var(--text-dim); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chat-item:active { background:var(--surface2); color:var(--text); }
+.chat-item.active { background:var(--surface2); color:var(--accent); }
+.overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:99; opacity:0; pointer-events:none; transition:opacity .3s; }
+.overlay.show { opacity:1; pointer-events:auto; }
+::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
-<body>
+<body data-theme="dark">
+<div class="sidebar" id="sb">
+  <div class="sidebar-h"><h3>HARZ AI</h3><button class="icon-btn" onclick="toggleSb()">&times;</button></div>
+  <button class="new-chat" onclick="newChat()">+ New Chat</button>
+  <div class="chat-list" id="cl"></div>
+  <div style="padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)">Powered by Claude & Qwen<br>HARZ Digital Services</div>
+</div>
+<div class="overlay" id="ov" onclick="toggleSb()"></div>
 <div class="header">
+  <button class="icon-btn" onclick="toggleSb()">&#9776;</button>
   <div class="logo">HARZ <span>AI</span></div>
   <select class="model-sel" id="mdl">
-    <option value="qwen-flash">Qwen Flash ⚡</option>
-    <option value="qwen-plus">Qwen Plus</option>
-    <option value="qwen-max">Qwen Max</option>
+    <option value="claude-sonnet">Claude Sonnet 5</option>
+    <option value="claude-haiku">Claude Haiku</option>
+    <option value="claude-opus">Claude Opus 5</option>
+    <option value="qwen-flash">Qwen 3.7 Flash</option>
+    <option value="qwen-plus">Qwen 3.7 Plus</option>
     <option value="qwen-coder">Qwen Coder</option>
     <option value="deepseek">DeepSeek V4</option>
     <option value="gpt-oss">GPT-OSS (Free)</option>
   </select>
+  <div class="spacer"></div>
+  <button class="icon-btn" onclick="toggleTheme()" id="tb">&#9790;</button>
+  <button class="icon-btn" onclick="newChat()">+</button>
   <div class="status-dot" id="dot"></div>
 </div>
 <div class="chat-area" id="ca">
   <div class="welcome" id="wlc">
-    <h2>HARZ AI Chat</h2>
-    <p>English • Hausa • Pidgin</p>
+    <h2>HARZ AI</h2>
+    <div class="tag">Powered by Claude Sonnet 5</div>
+    <p style="font-size:13px;margin-bottom:18px">English &bull; Hausa &bull; Pidgin</p>
     <div class="chips">
-      <div class="chip" onclick="suggest('Sannu! Taimaka ni da business plan')">Business plan (Hausa)</div>
+      <div class="chip" onclick="suggest('Sannu! Taimaka ni da business plan')">Business plan</div>
       <div class="chip" onclick="suggest('Write a promo post for my digital store')">Promo post</div>
       <div class="chip" onclick="suggest('Fassara zuwa Hausa: Welcome to HARZ')">Fassara</div>
       <div class="chip" onclick="suggest('Code a simple payment form in HTML')">Code</div>
@@ -76,115 +110,81 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div class="input-area">
   <div class="input-wrap">
     <textarea id="inp" placeholder="Type a message..." rows="1"></textarea>
-    <button id="send" onclick="send()">↑</button>
+    <button id="send" onclick="send()">&#8593;</button>
   </div>
 </div>
-
 <script>
-const API = "https://superagent-2286fb2f.base44.app/functions/harzChat";
-let msgs = [], busy = false;
+const API="https://superagent-2286fb2f.base44.app/functions/harzChat";
+let msgs=[],busy=false,chats={},cur="default";
 
-function ping() {
-  fetch(API, { method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({messages:[{role:"user",content:"ping"}], model:"qwen-flash"}),
-    signal: AbortSignal.timeout(15000)
-  }).then(r => {
-    document.getElementById("dot").className = r.ok ? "status-dot" : "status-dot red";
-  }).catch(() => { document.getElementById("dot").className = "status-dot red"; });
-}
-ping();
-
-function suggest(t) { document.getElementById("inp").value=t; send(); }
-
-function addMsg(role, content) {
-  const wlc = document.getElementById("wlc");
-  if (wlc) wlc.remove();
-  const ca = document.getElementById("ca");
-  const d = document.createElement("div");
-  d.className = "msg " + (role==="user" ? "user" : "ai");
-  d.innerHTML = `<div class="msg-role">${role==="user"?"You":"HARZ AI"}</div>${esc(content)}`;
-  ca.appendChild(d);
-  ca.scrollTop = ca.scrollHeight;
-  return d;
-}
-
-function esc(t) {
-  const d = document.createElement("div"); d.textContent=t; return d.innerHTML;
-}
-
-async function send() {
-  const inp = document.getElementById("inp");
-  const text = inp.value.trim();
-  if (!text || busy) return;
-  inp.value = ""; inp.style.height = "auto";
-  busy = true;
-  document.getElementById("send").disabled = true;
-
-  msgs.push({role:"user", content:text});
-  addMsg("user", text);
-
-  const ca = document.getElementById("ca");
-  const td = document.createElement("div");
-  td.className = "msg ai"; td.id = "ti";
-  td.innerHTML = '<div class="msg-role">HARZ AI</div><div class="typing"><span></span><span></span><span></span></div>';
-  ca.appendChild(td); ca.scrollTop = ca.scrollHeight;
-
-  const model = document.getElementById("mdl").value;
-  // Keep only last 10 messages to reduce payload and speed up 3G
-  const recentMsgs = msgs.slice(-10);
-
-  try {
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 60000); // 60s timeout for 3G
-
-    const res = await fetch(API, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({messages: recentMsgs, model}),
-      signal: ctrl.signal
-    });
-    clearTimeout(timeout);
-
-    document.getElementById("ti")?.remove();
-
-    if (!res.ok) {
-      const err = await res.text();
-      addMsg("assistant", "Server error (" + res.status + "). Try again.");
-    } else {
-      const data = await res.json();
-      const content = data.content || "No response";
-      msgs.push({role:"assistant", content});
-      addMsg("assistant", content);
-    }
-  } catch(e) {
-    document.getElementById("ti")?.remove();
-    const errDiv = addMsg("assistant", e.name === "AbortError"
-      ? "Request timed out on slow network. Try again or switch to WiFi."
-      : "Network error. Check your connection and try again.");
-    const btn = document.createElement("button");
-    btn.className = "retry-btn"; btn.textContent = "Retry";
-    btn.onclick = () => {
-      msgs.pop(); msgs.pop();
-      errDiv.remove();
-      inp.value = text; send();
-    };
-    errDiv.appendChild(document.createElement("br"));
-    errDiv.appendChild(btn);
+function load(){
+  try{const s=localStorage.getItem("harz_chat");if(s)chats=JSON.parse(s);
+  const t=localStorage.getItem("harz_theme");if(t)document.body.setAttribute("data-theme",t);
+  document.getElementById("tb").innerHTML=t==="light"?"&#9728;":"&#9790;";
+  const m=localStorage.getItem("harz_model");if(m)document.getElementById("mdl").value=m;
+  }catch(e){}
+  if(chats["default"]&&chats["default"].length>0){
+    cur=Object.keys(chats)[0];msgs=chats[cur]||[];render();
   }
-
-  busy = false;
-  document.getElementById("send").disabled = false;
-  inp.focus();
+  renderList();
 }
+function save(){try{localStorage.setItem("harz_chat",JSON.stringify(chats))}catch(e){}}
+function toggleSb(){document.getElementById("sb").classList.toggle("open");document.getElementById("ov").classList.toggle("show");}
+function toggleTheme(){const c=document.body.getAttribute("data-theme");const n=c==="dark"?"light":"dark";document.body.setAttribute("data-theme",n);localStorage.setItem("harz_theme",n);document.getElementById("tb").innerHTML=n==="dark"?"&#9790;":"&#9728;";}
+function newChat(){const id="c"+Date.now();chats[id]=[];cur=id;msgs=[];document.getElementById("ca").innerHTML="";showWlc();document.getElementById("sb").classList.remove("open");document.getElementById("ov").classList.remove("show");renderList();save();}
+function showWlc(){
+  document.getElementById("ca").innerHTML=`<div class="welcome" id="wlc"><h2>HARZ AI</h2><div class="tag">Powered by Claude Sonnet 5</div><p style="font-size:13px;margin-bottom:18px">English &bull; Hausa &bull; Pidgin</p><div class="chips"><div class="chip" onclick="suggest('Sannu! Taimaka ni da business plan')">Business plan</div><div class="chip" onclick="suggest('Write a promo post for my digital store')">Promo post</div><div class="chip" onclick="suggest('Fassara zuwa Hausa: Welcome to HARZ')">Fassara</div><div class="chip" onclick="suggest('Code a simple payment form in HTML')">Code</div></div></div>`;
+}
+function renderList(){const l=document.getElementById("cl");l.innerHTML="";Object.keys(chats).reverse().forEach(id=>{const f=chats[id]&&chats[id][0]?chats[id][0].content.substring(0,28):"New chat";const d=document.createElement("div");d.className="chat-item"+(id===cur?" active":"");d.textContent=f;d.onclick=()=>loadChat(id);l.appendChild(d);});}
+function loadChat(id){cur=id;msgs=chats[id]||[];render();document.getElementById("sb").classList.remove("open");document.getElementById("ov").classList.remove("show");renderList();}
+function render(){const e=document.getElementById("ca");e.innerHTML="";if(msgs.length===0){showWlc();return;}msgs.forEach(m=>addMsg(m.role,m.content,false));e.scrollTop=e.scrollHeight;}
+function addMsg(role,content,animate=true){
+  const w=document.getElementById("wlc");if(w)w.remove();
+  const e=document.getElementById("ca");const d=document.createElement("div");
+  d.className="msg "+(role==="user"?"user":"ai");
+  const r=role==="user"?"You":"HARZ AI";
+  const t=document.createElement("div");t.className="msg-role";t.textContent=r;
+  const c=document.createElement("div");c.textContent=content;
+  d.appendChild(t);d.appendChild(c);e.appendChild(d);
+  if(animate)e.scrollTop=e.scrollHeight;return d;
+}
+function suggest(t){document.getElementById("inp").value=t;send();}
+function ping(){
+  fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"user",content:"ping"}],model:"claude-haiku"}),signal:AbortSignal.timeout(15000)})
+  .then(r=>{document.getElementById("dot").className=r.ok?"status-dot":"status-dot red";})
+  .catch(()=>{document.getElementById("dot").className="status-dot red";});
+}
+ping();setInterval(ping,60000);
 
-const inp = document.getElementById("inp");
-inp.addEventListener("input", () => {
-  inp.style.height = "auto";
-  inp.style.height = Math.min(inp.scrollHeight, 100) + "px";
-});
-inp.addEventListener("keydown", e => {
-  if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-});
+async function send(){
+  const inp=document.getElementById("inp");const text=inp.value.trim();
+  if(!text||busy)return;
+  inp.value="";inp.style.height="auto";busy=true;document.getElementById("send").disabled=true;
+  msgs.push({role:"user",content:text});addMsg("user",text);chats[cur]=msgs;save();renderList();
+  const ca=document.getElementById("ca");const td=document.createElement("div");
+  td.className="msg ai";td.id="ti";td.innerHTML='<div class="msg-role">HARZ AI</div><div class="typing"><span></span><span></span><span></span></div>';
+  ca.appendChild(td);ca.scrollTop=ca.scrollHeight;
+  const model=document.getElementById("mdl").value;localStorage.setItem("harz_model",model);
+  const recent=msgs.slice(-10);
+  try{
+    const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),90000);
+    const res=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:recent,model}),signal:ctrl.signal});
+    clearTimeout(to);document.getElementById("ti")?.remove();
+    if(!res.ok){addMsg("assistant","Server error ("+res.status+"). Try again.");}
+    else{const data=await res.json();const content=data.content||"No response";msgs.push({role:"assistant",content});addMsg("assistant",content);chats[cur]=msgs;save();renderList();}
+  }catch(e){
+    document.getElementById("ti")?.remove();
+    const ed=addMsg("assistant",e.name==="AbortError"?"Request timed out on slow network. Try again or switch to WiFi.":"Network error. Check your connection.");
+    const btn=document.createElement("button");btn.className="retry-btn";btn.textContent="Retry";
+    btn.onclick=()=>{msgs.pop();msgs.pop();ed.remove();document.getElementById("inp").value=text;send();};
+    ed.appendChild(document.createElement("br"));ed.appendChild(btn);
+  }
+  busy=false;document.getElementById("send").disabled=false;document.getElementById("inp").focus();
+}
+const inp=document.getElementById("inp");
+inp.addEventListener("input",()=>{inp.style.height="auto";inp.style.height=Math.min(inp.scrollHeight,100)+"px";});
+inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}});
+load();
 </script>
 </body>
 </html>
