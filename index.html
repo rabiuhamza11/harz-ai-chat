@@ -37,6 +37,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .msg.ai { align-self:flex-start; background:var(--ai-bg); border:1px solid var(--border); border-bottom-left-radius:4px; }
 .msg-role { font-size:10px; color:var(--text-dim); margin-bottom:3px; font-weight:600; letter-spacing:.5px; }
 .msg.user .msg-role { color:rgba(255,255,255,.6); }
+.msg-attachment { font-size:12px; color:var(--accent); margin-bottom:6px; padding:4px 8px; background:var(--surface2); border-radius:6px; }
+.msg.user .msg-attachment { background:rgba(255,255,255,.15); color:rgba(255,255,255,.8); }
 
 .welcome { text-align:center; padding:30px 16px; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .welcome .big-emoji { font-size:48px; margin-bottom:12px; }
@@ -57,10 +59,24 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .input-wrap:focus-within { border-color:var(--accent); }
 #inp { flex:1; background:none; border:none; color:var(--text); font-size:15px; font-family:inherit; resize:none; outline:none; max-height:100px; min-height:22px; padding:4px 0; line-height:1.4; }
 #inp::placeholder { color:var(--text-dim); }
+#attach { background:none; border:none; color:var(--text-dim); cursor:pointer; padding:4px; font-size:20px; flex-shrink:0; }
+#attach:active { color:var(--accent); }
 #send { background:var(--accent); color:#fff; border:none; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 #send:disabled { opacity:.35; }
 
 .retry-btn { background:var(--accent); color:#fff; border:none; padding:6px 14px; border-radius:8px; font-size:13px; cursor:pointer; margin-top:6px; }
+
+/* File preview */
+.file-preview { display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:6px; max-width:260px; }
+.file-preview .fp-icon { font-size:24px; flex-shrink:0; }
+.file-preview .fp-info { flex:1; min-width:0; }
+.file-preview .fp-name { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file-preview .fp-size { font-size:10px; color:var(--text-dim); }
+.file-preview .fp-remove { background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:18px; padding:2px; flex-shrink:0; }
+.file-preview .fp-remove:active { color:#ff4444; }
+.file-preview img { width:40px; height:40px; border-radius:6px; object-fit:cover; flex-shrink:0; }
+
+#fileInput { display:none; }
 
 .sidebar { position:fixed; top:0; left:0; width:240px; height:100dvh; background:var(--surface); border-right:1px solid var(--border); transform:translateX(-100%); transition:transform .3s ease; z-index:100; display:flex; flex-direction:column; }
 .sidebar.open { transform:translateX(0); }
@@ -98,7 +114,12 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
     <option value="qwen/qwen3.7-flash">Qwen Flash</option>
     <option value="qwen/qwen3.7-plus">Qwen Plus</option>
     <option value="deepseek/deepseek-v4-flash-latest">DeepSeek</option>
-    <option value="openai/gpt-oss-20b:free">GPT-OSS (Free)</option><option value="gpt-5">GPT-5</option><option value="gpt-4o">GPT-4o</option><option value="gpt-4o-mini">GPT-4o Mini</option><option value="o3">o3 Reasoning</option><option value="o4-mini">o4 Mini</option>
+    <option value="openai/gpt-oss-20b:free">GPT-OSS (Free)</option>
+    <option value="gpt-5">GPT-5</option>
+    <option value="gpt-4o">GPT-4o</option>
+    <option value="gpt-4o-mini">GPT-4o Mini</option>
+    <option value="o3">o3 Reasoning</option>
+    <option value="o4-mini">o4 Mini</option>
   </select>
   <div class="spacer"></div>
   <button class="icon-btn" onclick="toggleTheme()" id="tb">&#9790;</button>
@@ -111,6 +132,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 
 <div class="input-area">
   <div class="input-wrap">
+    <input type="file" id="fileInput" accept=".pdf,image/*,video/*">
+    <button id="attach" onclick="document.getElementById('fileInput').click()">&#128206;</button>
+    <div id="filePreviewArea"></div>
     <textarea id="inp" placeholder="Type a message..." rows="1"></textarea>
     <button id="send" onclick="send()">&#8593;</button>
   </div>
@@ -123,12 +147,83 @@ const NAME = "HARZ AI";
 const SUGGESTIONS = ["Sannu! Taimaka ni da business plan", "Write a promo post for my store", "Fassara zuwa Hausa: Welcome to HARZ", "Code a simple HTML form"];
 
 let msgs = [], busy = false, chats = {}, cur = "default";
+let attachedFile = null;
+let attachedFileBase64 = null;
+let attachedFileType = null;
 
 function init() {
   try { const s = localStorage.getItem("chat_harz-ai"); if (s) chats = JSON.parse(s); } catch(e) {}
   try { const t = localStorage.getItem("theme_harz-ai"); if (t) document.body.setAttribute("data-theme", t); document.getElementById("tb").innerHTML = t==="light"?"&#9728;":"&#9790;"; } catch(e) {}
   if (chats["default"] && chats["default"].length > 0) { msgs = chats["default"]; render(); } else { showWelcome(); }
   renderList();
+
+  // File upload handler
+  document.getElementById("fileInput").addEventListener("change", handleFile);
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // Check file size (max 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    alert("File ya kai 10MB. Sai ka rage shi.");
+    e.target.value = "";
+    return;
+  }
+  
+  attachedFile = file;
+  const reader = new FileReader();
+  
+  if (file.type.startsWith("image/")) {
+    attachedFileType = "image";
+    reader.onload = function(ev) {
+      attachedFileBase64 = ev.target.result;
+      showFilePreview(file, ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+    attachedFileType = "pdf";
+    reader.onload = function(ev) {
+      attachedFileBase64 = ev.target.result;
+      showFilePreview(file, null);
+    };
+    reader.readAsDataURL(file);
+  } else if (file.type.startsWith("video/")) {
+    attachedFileType = "video";
+    reader.onload = function(ev) {
+      attachedFileBase64 = ev.target.result;
+      showFilePreview(file, null);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    alert("Type din da aka tallaka: PDF, Image, ko Video kawai.");
+    e.target.value = "";
+  }
+}
+
+function showFilePreview(file, imgUrl) {
+  const area = document.getElementById("filePreviewArea");
+  let icon = "&#128196;";
+  if (attachedFileType === "image") icon = imgUrl ? "" : "&#128247;";
+  else if (attachedFileType === "pdf") icon = "&#128209;";
+  else if (attachedFileType === "video") icon = "&#127909;";
+  
+  const sizeStr = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+"MB" : Math.round(file.size/1024)+"KB";
+  
+  area.innerHTML = '<div class="file-preview">' +
+    (imgUrl ? '<img src="'+imgUrl+'">' : '<span class="fp-icon">'+icon+'</span>') +
+    '<div class="fp-info"><div class="fp-name">'+file.name+'</div><div class="fp-size">'+sizeStr+'</div></div>' +
+    '<button class="fp-remove" onclick="removeFile()">&times;</button>' +
+    '</div>';
+}
+
+function removeFile() {
+  attachedFile = null;
+  attachedFileBase64 = null;
+  attachedFileType = null;
+  document.getElementById("filePreviewArea").innerHTML = "";
+  document.getElementById("fileInput").value = "";
 }
 
 function save() { try { localStorage.setItem("chat_harz-ai", JSON.stringify(chats)); } catch(e) {} }
@@ -145,77 +240,113 @@ function newChat() {
   renderList(); save();
 }
 function showWelcome() {
-  document.getElementById("ca").innerHTML = '<div class="welcome"><div class="big-emoji">🤖</div><h2>HARZ AI</h2><div class="sub">General Assistant</div><p>Claude Sonnet 5 | Qwen | DeepSeek | English | Hausa | Pidgin</p><div class="chips">' + SUGGESTIONS.map(s => '<div class="chip" onclick="suggest(this.textContent)">' + s + '</div>').join('') + '</div></div>';
+  document.getElementById("ca").innerHTML = '<div class="welcome"><div class="big-emoji">🤖</div><h2>HARZ AI</h2><div class="sub">General Assistant</div><p>Claude Sonnet 5 | Qwen | GPT-5 | PDF | Image | Video</p><div class="chips">' + SUGGESTIONS.map(s => '<div class="chip" onclick="useSug(this)">'+s+'</div>').join('') + '</div></div>';
 }
+function useSug(el) { document.getElementById("inp").value = el.textContent; document.getElementById("inp").focus(); }
 function renderList() {
-  const l = document.getElementById("cl"); l.innerHTML = "";
-  Object.keys(chats).reverse().forEach(id => {
-    if (!chats[id] || chats[id].length === 0) return;
-    const d = document.createElement("div"); d.className = "chat-item"; d.textContent = chats[id][0].content.substring(0,28);
-    d.onclick = () => loadChat(id); l.appendChild(d);
-  });
+  const list = document.getElementById("cl");
+  list.innerHTML = Object.keys(chats).map(id => {
+    const m = chats[id]; if (!m || m.length === 0) return "";
+    const txt = m[0].content.substring(0, 30);
+    return '<div class="chat-item" onclick="loadChat(\''+id+'\')">'+txt+'...</div>';
+  }).join("");
 }
-function loadChat(id) { cur = id; msgs = chats[id] || []; render(); toggleSb(); }
+function loadChat(id) { cur = id; msgs = chats[id] || []; render(); document.getElementById("sb").classList.remove("open"); document.getElementById("ov").classList.remove("show"); }
 function render() {
-  const e = document.getElementById("ca"); e.innerHTML = "";
-  if (msgs.length === 0) { showWelcome(); return; }
-  msgs.forEach(m => addMsg(m.role, m.content));
-  e.scrollTop = e.scrollHeight;
+  const ca = document.getElementById("ca"); ca.innerHTML = "";
+  for (const m of msgs) {
+    const div = document.createElement("div");
+    div.className = "msg " + m.role;
+    let html = "";
+    if (m.attachment) html += '<div class="msg-attachment">'+m.attachment+'</div>';
+    if (m.role === "user") html += '<div class="msg-role">You</div>';
+    else html += '<div class="msg-role">'+(m.agent_name||NAME)+'</div>';
+    html += '<div>' + escapeHtml(m.content) + '</div>';
+    div.innerHTML = html; ca.appendChild(div);
+  }
+  ca.scrollTop = ca.scrollHeight;
 }
-function addMsg(role, content) {
-  const w = document.getElementById("wlc"); if (w) w.remove();
-  const e = document.getElementById("ca"); const d = document.createElement("div");
-  d.className = "msg " + (role === "user" ? "user" : "ai");
-  const r = document.createElement("div"); r.className = "msg-role"; r.textContent = role === "user" ? "You" : NAME;
-  const c = document.createElement("div"); c.textContent = content;
-  d.appendChild(r); d.appendChild(c); e.appendChild(d); e.scrollTop = e.scrollHeight;
-  return d;
-}
-function suggest(t) { document.getElementById("inp").value = t; send(); }
-function ping() {
-  fetch(API, { method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({messages:[{role:"user",content:"ping"}], agent:"harz-ai", model:"anthropic/claude-3-haiku"}),
-    signal: AbortSignal.timeout(15000) })
-  .then(r => { document.getElementById("dot").className = r.ok ? "status-dot" : "status-dot red"; })
-  .catch(() => { document.getElementById("dot").className = "status-dot red"; });
-}
-ping(); setInterval(ping, 60000);
+function escapeHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function send() {
-  const inp = document.getElementById("inp"); const text = inp.value.trim();
-  if (!text || busy) return;
-  inp.value = ""; inp.style.height = "auto"; busy = true; document.getElementById("send").disabled = true;
-  const customModel = document.getElementById("mdl").value || undefined;
-  msgs.push({ role:"user", content:text });
-  addMsg("user", text);
-  if (!chats[cur]) chats[cur] = []; chats[cur] = msgs; save(); renderList();
-  const ca = document.getElementById("ca"); const td = document.createElement("div");
-  td.className = "msg ai"; td.id = "ti";
-  td.innerHTML = '<div class="msg-role">' + NAME + '</div><div class="typing"><span></span><span></span><span></span></div>';
-  ca.appendChild(td); ca.scrollTop = ca.scrollHeight;
-  try {
-    const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 90000);
-    const res = await fetch(API, { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ messages: msgs.slice(-10), agent: AGENT, model: customModel }), signal: ctrl.signal });
-    clearTimeout(to); document.getElementById("ti")?.remove();
-    if (!res.ok) { addMsg("assistant", "Server error (" + res.status + "). Try again."); }
-    else {
-      const data = await res.json(); const content = data.content || "No response";
-      msgs.push({ role:"assistant", content }); addMsg("assistant", content);
-      chats[cur] = msgs; save(); renderList();
-    }
-  } catch(e) {
-    document.getElementById("ti")?.remove();
-    const ed = addMsg("assistant", e.name==="AbortError" ? "Request timed out. Try again." : "Network error. Check your connection.");
-    const btn = document.createElement("button"); btn.className="retry-btn"; btn.textContent="Retry";
-    btn.onclick = () => { msgs.pop(); msgs.pop(); ed.remove(); document.getElementById("inp").value=text; send(); };
-    ed.appendChild(document.createElement("br")); ed.appendChild(btn);
+  const inp = document.getElementById("inp");
+  const text = inp.value.trim();
+  if ((!text && !attachedFile) || busy) return;
+  
+  busy = true;
+  document.getElementById("send").disabled = true;
+  
+  let userMsg = { role: "user", content: text || "(File upload)" };
+  if (attachedFile) {
+    userMsg.attachment = "&#128206; " + attachedFile.name + " (" + attachedFileType + ")";
   }
-  busy = false; document.getElementById("send").disabled = false; document.getElementById("inp").focus();
+  msgs.push(userMsg);
+  inp.value = "";
+  render();
+  
+  // Build request payload
+  const payload = { messages: msgs.map(m => ({ role: m.role, content: m.content })), agent: AGENT };
+  const model = document.getElementById("mdl").value;
+  if (model) payload.model = model;
+  
+  // Attach file if present
+  if (attachedFile && attachedFileBase64) {
+    payload.file = {
+      name: attachedFile.name,
+      type: attachedFileType,
+      mime: attachedFile.type,
+      data: attachedFileBase64
+    };
+  }
+  
+  // Remove file preview
+  removeFile();
+  
+  // Show typing
+  const ca = document.getElementById("ca");
+  const typingDiv = document.createElement("div");
+  typingDiv.className = "msg ai";
+  typingDiv.innerHTML = '<div class="msg-role">'+NAME+'</div><div class="typing"><span></span><span></span><span></span></div>';
+  ca.appendChild(typingDiv);
+  ca.scrollTop = ca.scrollHeight;
+  
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    typingDiv.remove();
+    if (data.error) {
+      msgs.push({ role: "assistant", content: "Kuskure: " + data.error + (data.details ? "\n" + data.details.substring(0,100) : ""), agent_name: NAME });
+    } else {
+      msgs.push({ role: "assistant", content: data.content, agent_name: data.agent_name || NAME, model: data.model });
+    }
+    render();
+    chats[cur] = msgs; save(); renderList();
+  } catch(err) {
+    typingDiv.remove();
+    msgs.push({ role: "assistant", content: "Ba zan iya kaiwa ba. Ka gwada again.\n" + err.message, agent_name: NAME });
+    render();
+    chats[cur] = msgs; save();
+  }
+  
+  busy = false;
+  document.getElementById("send").disabled = false;
+  inp.focus();
 }
-const inp = document.getElementById("inp");
-inp.addEventListener("input", () => { inp.style.height="auto"; inp.style.height=Math.min(inp.scrollHeight,100)+"px"; });
-inp.addEventListener("keydown", e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+
+// Enter to send
+document.getElementById("inp").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+// Auto-resize textarea
+document.getElementById("inp").addEventListener("input", e => {
+  e.target.style.height = "auto";
+  e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
+});
+
 init();
 </script>
 </body>
