@@ -85,8 +85,16 @@ textarea { resize:vertical; min-height:60px; }
         <option value="120">2 minutes</option>
         <option value="180">3 minutes</option>
         <option value="300">5 minutes</option>
+        <option value="600">10 minutes</option>
+        <option value="900">15 minutes</option>
+        <option value="1200">20 minutes</option>
+        <option value="1500">25 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="2100">35 minutes</option>
+        <option value="2400">40 minutes</option>
+        <option value="2700">45 minutes</option>
       </select>
-      <input type="number" id="customDur" placeholder="Custom (sec)" min="1" max="600" style="width:90px">
+      <input type="number" id="customDur" placeholder="Custom (sec)" min="1" max="3600" style="width:90px">
     </div>
     <div class="total-dur" id="totalDur">Total: 0s</div>
   </div>
@@ -113,6 +121,7 @@ textarea { resize:vertical; min-height:60px; }
       <canvas id="previewCanvas" width="1280" height="720"></canvas>
     </div>
     <div class="status" id="status">Add slides, then click Generate</div>
+    <div id="durWarning" style="display:none;font-size:11px;color:#ff9800;text-align:center;margin:4px 0"></div>
     <button class="btn" id="genBtn" onclick="generateVideo()">🎬 Generate Video</button>
     <div class="video-result" id="result"></div>
   </div>
@@ -152,6 +161,15 @@ function updateTotalDuration() {
   const titleAdd = document.getElementById('vidTitle').value ? 2 : 0;
   const total = (slides.length * perSlide) + titleAdd + 2;
   document.getElementById('totalDur').textContent = 'Total: ' + formatDuration(total) + ' (' + slides.length + ' slides)';
+
+  const warning = document.getElementById('durWarning');
+  if (total > 600) {
+    const estMB = (total * 0.05 * 30 / 8).toFixed(0);
+    warning.style.display = 'block';
+    warning.textContent = '⚠️ Long video (' + formatDuration(total) + '): ~' + estMB + 'MB file. Keep browser tab open during recording.';
+  } else {
+    warning.style.display = 'none';
+  }
 }
 
 function updateCanvasSize() {
@@ -396,14 +414,55 @@ function drawEndSlide() {
 }
 
 async function animateSlide(slide, duration) {
-  const steps = Math.min(60, Math.max(20, Math.floor(duration / 50)));
-  const stepDur = duration / steps;
+  // For long durations: hold slide with subtle progress bar
+  // For short durations: smooth fade animation
+  const fadeInMs = Math.min(1000, duration * 0.2);
+  const fadeOutMs = Math.min(1000, duration * 0.15);
+  const holdMs = duration - fadeInMs - fadeOutMs;
 
-  for (let i = 0; i <= steps; i++) {
-    const progress = i / steps;
-    drawSlide(slide, progress);
-    await sleep(stepDur);
+  // Fade in
+  const inSteps = 30;
+  for (let i = 0; i <= inSteps; i++) {
+    drawSlide(slide, i / inSteps);
+    await sleep(fadeInMs / inSteps);
   }
+
+  // Hold - draw fully visible, update progress bar
+  if (holdMs > 200) {
+    const holdSteps = Math.floor(holdMs / 100);
+    const holdStepMs = holdMs / holdSteps;
+    for (let i = 0; i < holdSteps; i++) {
+      drawSlideWithProgress(slide, 1.0, (i / holdSteps));
+      await sleep(holdStepMs);
+    }
+  } else {
+    drawSlide(slide, 1.0);
+    await sleep(holdMs);
+  }
+
+  // Fade out (subtle)
+  const outSteps = 15;
+  for (let i = 0; i <= outSteps; i++) {
+    drawSlide(slide, 1.0 - (i / outSteps) * 0.3);
+    await sleep(fadeOutMs / outSteps);
+  }
+}
+
+function drawSlideWithProgress(slide, progress, holdProgress) {
+  drawSlide(slide, progress);
+
+  // Draw progress bar at bottom
+  const barH = Math.max(4, canvas.height * 0.008);
+  const barY = canvas.height - barH;
+  const barW = canvas.width;
+
+  // Background bar
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(0, barY, barW, barH);
+
+  // Progress fill
+  ctx.fillStyle = '#00d4a0';
+  ctx.fillRect(0, barY, barW * holdProgress, barH);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
