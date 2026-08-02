@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HARZ TikTok Video Maker</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; color:#fff; font-family:-apple-system,sans-serif; height:100dvh; overflow:hidden; }
+.slide { position:fixed; top:0; left:0; width:100%; height:100dvh; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; }
+.slide.active { display:flex; }
+.slide h1 { font-size:28px; font-weight:900; margin-bottom:12px; line-height:1.2; }
+.slide p { font-size:18px; color:#ccc; line-height:1.4; max-width:90%; }
+.slide .emoji { font-size:60px; margin-bottom:15px; }
+.slide .timer { position:absolute; bottom:30px; font-size:14px; color:#666; }
+.slide .badge { position:absolute; top:15px; right:15px; background:#6c63ff; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold; }
+.red-bg { background:linear-gradient(135deg,#1a0000,#3a0000); }
+.green-bg { background:linear-gradient(135deg,#001a0a,#003a1a); }
+.blue-bg { background:linear-gradient(135deg,#0a0a2a,#1a1a4a); }
+.dark-bg { background:linear-gradient(135deg,#0a0a0a,#1a1a1a); }
+.accent { color:#6c63ff; }
+.green-text { color:#00d4a0; }
+.red-text { color:#ff4444; }
+.yellow-text { color:#ffd700; }
+.controls { position:fixed; bottom:0; left:0; right:0; background:#111; padding:12px; display:flex; gap:10px; justify-content:center; z-index:100; border-top:1px solid #222; }
+.controls button { background:#6c63ff; color:#fff; border:none; padding:10px 20px; border-radius:20px; font-size:14px; cursor:pointer; font-weight:600; }
+.controls button:active { background:#4a42d4; }
+.controls .counter { color:#666; font-size:14px; padding:10px; }
+.progress { position:fixed; top:0; left:0; height:3px; background:#6c63ff; transition:width .3s; z-index:101; }
+</style>
+</head>
+<body>
+<div class="progress" id="bar" style="width:0%"></div>
+
+<div class="slide dark-bg active" id="s0">
+<div class="badge">HARZ AI</div>
+<div class="emoji">❌</div>
+<h1>Stop writing your CV like this!</h1>
+<p class="red-text">Nijaka ka rubuta CV ka a yanzu? Ka rasa interviews!</p>
+<div class="timer">0-3s</div>
+</div>
+
+<div class="slide red-bg" id="s1">
+<div class="emoji">🤖</div>
+<h1>Companies use ATS</h1>
+<p>Your CV gets <span class="red-text">BLOCKED</span> automatically</p>
+<p style="margin-top:10px;font-size:15px">Employers suna amfani da ATS system. Idan CV ka baya dacewa, ba za su ga shi ba.</p>
+<div class="timer">3-10s</div>
+</div>
+
+<div class="slide green-bg" id="s2">
+<div class="emoji">✅</div>
+<h1 class="green-text">ATS-Friendly CV</h1>
+<p>Fills in <strong>15 minutes</strong> only!</p>
+<p style="margin-top:10px;font-size:15px">Na yi template wanda ya hada keywords, layout mai sauki, da cover letter.</p>
+<div class="timer">10-20s</div>
+</div>
+
+<div class="slide blue-bg" id="s3">
+<div class="emoji">📥</div>
+<h1 class="accent">Link in bio!</h1>
+<p>Get yours for <span class="yellow-text">₦3,500</span> only</p>
+<p style="margin-top:10px;font-size:15px">Click link in bio don samun shi</p>
+<div class="timer">20-30s</div>
+</div>
+
+<div class="slide dark-bg" id="s4">
+<div class="emoji">🎁</div>
+<h1 class="yellow-text">First 20 get FREE CV review!</h1>
+<p>Farkon 20 suna samun free 1-on-1 CV review</p>
+<div class="timer">30-40s</div>
+</div>
+
+<div class="slide dark-bg" id="s5">
+<div class="badge">HARZ AI</div>
+<div class="emoji">📄</div>
+<h1 class="accent">HARZ ATS-CV Kit</h1>
+<p style="font-size:16px">For Nigerian Graduates & Fresh Talent</p>
+<p style="margin-top:15px;font-size:14px;color:#666">Tap to restart</p>
+</div>
+
+<div class="controls">
+<button onclick="prev()">← Back</button>
+<span class="counter" id="ctr">1 / 6</span>
+<button onclick="next()">Next →</button>
+</div>
+
+<script>
+let cur=0; const total=6; const autoPlay=true; let timer;
+function show(n){document.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('active',i===n));document.getElementById('bar').style.width=((n+1)/total*100)+'%';document.getElementById('ctr').textContent=(n+1)+' / '+total;cur=n;if(autoPlay&&n<total-1){clearTimeout(timer);timer=setTimeout(()=>next(),3500);}}
+function next(){if(cur<total-1)show(cur+1);else clearTimeout(timer);}
+function prev(){if(cur>0)show(cur-1);}
+show(0);
+document.addEventListener('click',e=>{if(!e.target.closest('.controls'))next();});
+</script>
+</body>
+</html>
