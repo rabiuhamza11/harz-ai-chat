@@ -92,6 +92,14 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:99; opacity:0; pointer-events:none; transition:opacity .3s; }
 .overlay.show { opacity:1; pointer-events:auto; }
 ::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Voice recording */
+.voice-btn { background:none; border:none; color:var(--text-dim); cursor:pointer; padding:4px; font-size:20px; flex-shrink:0; }
+.voice-btn.recording { color:#ff4444; animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.voice-lang { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border); border-radius:6px; padding:2px 4px; font-size:10px; cursor:pointer; outline:none; max-width:70px; }
+.recording-indicator { position:fixed; top:60px; left:50%; transform:translateX(-50%); background:#ff4444; color:#fff; padding:6px 16px; border-radius:20px; font-size:13px; z-index:200; display:none; animation:fadeIn .2s; }
+.recording-indicator.show { display:block; }
 </style>
 </head>
 <body data-theme="dark">
@@ -126,13 +134,16 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <div class="status-dot" id="dot"></div>
 </div>
 
+<div class="recording-indicator" id="recIndicator">🔴 Recording... Tap mic to stop</div>
 <div class="chat-area" id="ca">
   <div class="welcome" id="wlc"></div>
 </div>
 
 <div class="input-area">
   <div class="input-wrap">
-    <input type="file" id="fileInput" accept=".pdf,image/*,video/*">
+    <input type="file" id="fileInput" accept=".pdf,image/*,video/*,audio/*">
+    <select class="voice-lang" id="voiceLang"><option value="en-NG">Eng</option><option value="ha-NG">Hau</option><option value="en-US">US</option></select>
+    <button class="voice-btn" id="micBtn" onclick="toggleVoice()">&#127908;</button>
     <button id="attach" onclick="document.getElementById('fileInput').click()">&#128206;</button>
     <div id="filePreviewArea"></div>
     <textarea id="inp" placeholder="Type a message..." rows="1"></textarea>
@@ -151,12 +162,86 @@ let attachedFile = null;
 let attachedFileBase64 = null;
 let attachedFileType = null;
 
+
+// Voice Recording (Web Speech API)
+let recognition = null, isRecording = false;
+let voiceTranscript = "";
+
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById("micBtn").style.display = "none";
+    document.getElementById("voiceLang").style.display = "none";
+    return;
+  }
+  recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  
+  recognition.onresult = function(event) {
+    let interim = "";
+    let final = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    if (final) voiceTranscript += final + " ";
+    const inp = document.getElementById("inp");
+    inp.value = voiceTranscript + interim;
+    inp.style.height = "auto";
+    inp.style.height = Math.min(inp.scrollHeight, 100) + "px";
+  };
+  
+  recognition.onerror = function(event) {
+    console.log("Voice error:", event.error);
+    if (event.error === "no-speech") return;
+    if (event.error === "not-allowed") {
+      alert("Ka bada izinin microphone a browser settings.");
+    }
+    stopVoice();
+  };
+  
+  recognition.onend = function() {
+    if (isRecording) {
+      // Restart if still recording (Chrome stops after silence)
+      try { recognition.start(); } catch(e) {}
+    }
+  };
+}
+
+function toggleVoice() {
+  if (!recognition) { alert("Browser din ba ya goyon bayan voice. Yi amfani da Chrome."); return; }
+  if (isRecording) stopVoice();
+  else startVoice();
+}
+
+function startVoice() {
+  const lang = document.getElementById("voiceLang").value || "en-NG";
+  recognition.lang = lang;
+  voiceTranscript = document.getElementById("inp").value || "";
+  isRecording = true;
+  document.getElementById("micBtn").classList.add("recording");
+  document.getElementById("micBtn").innerHTML = "&#9209;";
+  document.getElementById("recIndicator").classList.add("show");
+  try { recognition.start(); } catch(e) {}
+}
+
+function stopVoice() {
+  isRecording = false;
+  try { recognition.stop(); } catch(e) {}
+  document.getElementById("micBtn").classList.remove("recording");
+  document.getElementById("micBtn").innerHTML = "&#127908;";
+  document.getElementById("recIndicator").classList.remove("show");
+}
+
 function init() {
   try { const s = localStorage.getItem("chat_harz-ai"); if (s) chats = JSON.parse(s); } catch(e) {}
   try { const t = localStorage.getItem("theme_harz-ai"); if (t) document.body.setAttribute("data-theme", t); document.getElementById("tb").innerHTML = t==="light"?"&#9728;":"&#9790;"; } catch(e) {}
   if (chats["default"] && chats["default"].length > 0) { msgs = chats["default"]; render(); } else { showWelcome(); }
   renderList();
 
+  initVoice();
   // File upload handler
   document.getElementById("fileInput").addEventListener("change", handleFile);
 }
@@ -196,8 +281,15 @@ function handleFile(e) {
       showFilePreview(file, null);
     };
     reader.readAsDataURL(file);
+  } else if (file.type.startsWith("audio/")) {
+    attachedFileType = "audio";
+    reader.onload = function(ev) {
+      attachedFileBase64 = ev.target.result;
+      showFilePreview(file, null);
+    };
+    reader.readAsDataURL(file);
   } else {
-    alert("Type din da aka tallaka: PDF, Image, ko Video kawai.");
+    alert("Type din da aka tallaka: PDF, Image, Video, ko Audio kawai.");
     e.target.value = "";
   }
 }
@@ -208,6 +300,7 @@ function showFilePreview(file, imgUrl) {
   if (attachedFileType === "image") icon = imgUrl ? "" : "&#128247;";
   else if (attachedFileType === "pdf") icon = "&#128209;";
   else if (attachedFileType === "video") icon = "&#127909;";
+  else if (attachedFileType === "audio") icon = "&#127908;";
   
   const sizeStr = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+"MB" : Math.round(file.size/1024)+"KB";
   
@@ -240,7 +333,7 @@ function newChat() {
   renderList(); save();
 }
 function showWelcome() {
-  document.getElementById("ca").innerHTML = '<div class="welcome"><div class="big-emoji">🤖</div><h2>HARZ AI</h2><div class="sub">General Assistant</div><p>Claude Sonnet 5 | Qwen | GPT-5 | PDF | Image | Video</p><div class="chips">' + SUGGESTIONS.map(s => '<div class="chip" onclick="useSug(this)">'+s+'</div>').join('') + '</div></div>';
+  document.getElementById("ca").innerHTML = '<div class="welcome"><div class="big-emoji">🤖</div><h2>HARZ AI</h2><div class="sub">General Assistant</div><p>Claude Sonnet 5 | Qwen | GPT-5 | Voice | PDF | Image</p><div class="chips">' + SUGGESTIONS.map(s => '<div class="chip" onclick="useSug(this)">'+s+'</div>').join('') + '</div></div>';
 }
 function useSug(el) { document.getElementById("inp").value = el.textContent; document.getElementById("inp").focus(); }
 function renderList() {
