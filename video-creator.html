@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<title>HARZ Video Creator</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#16213e;
+  --border:#2a2a4a; --text:#e4e4ef; --text-dim:#8888a4;
+  --accent:#6c63ff; --green:#00d4a0; --radius:14px;
+}
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100dvh; }
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:10px 14px; display:flex; align-items:center; gap:8px; position:sticky; top:0; z-index:10; }
+.header a { color:var(--accent); text-decoration:none; font-size:14px; }
+.header .title { font-weight:700; font-size:16px; flex:1; }
+.container { max-width:600px; margin:0 auto; padding:16px; }
+.section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+.section h3 { font-size:14px; color:var(--accent); margin-bottom:10px; }
+label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px; }
+input[type="text"], textarea, select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:14px; font-family:inherit; margin-bottom:10px; outline:none; }
+input[type="text"]:focus, textarea:focus { border-color:var(--accent); }
+textarea { resize:vertical; min-height:60px; }
+.btn { background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; width:100%; }
+.btn:active { background:#4a42d4; }
+.btn:disabled { opacity:.4; }
+.btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+.btn-danger { background:#ff4444; }
+.slide-item { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:8px; position:relative; }
+.slide-item .slide-num { font-size:11px; color:var(--accent); font-weight:700; }
+.slide-item .slide-del { position:absolute; top:8px; right:8px; background:none; border:none; color:#ff4444; font-size:18px; cursor:pointer; }
+.slide-item img { width:100%; border-radius:8px; margin:6px 0; }
+.slide-item .slide-text { font-size:13px; color:var(--text); }
+.slide-item .slide-sub { font-size:11px; color:var(--text-dim); }
+.file-btn { background:var(--surface2); border:1px dashed var(--border); border-radius:10px; padding:16px; text-align:center; color:var(--text-dim); font-size:13px; cursor:pointer; margin-bottom:10px; }
+.file-btn:active { border-color:var(--accent); color:var(--accent); }
+#previewCanvas { width:100%; border-radius:10px; background:#000; margin:10px 0; }
+.preview-area { text-align:center; }
+.video-result { margin-top:14px; }
+.video-result video { width:100%; border-radius:10px; }
+.download-btn { background:var(--green); color:#000; border:none; padding:10px 20px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; margin-top:8px; }
+.status { font-size:12px; color:var(--text-dim); text-align:center; margin:8px 0; }
+.status.recording { color:#ff4444; }
+.preset-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:8px; font-size:11px; cursor:pointer; margin:2px; display:inline-block; }
+.preset-btn:active { border-color:var(--accent); color:var(--accent); }
+::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html">&#8592; Back</a>
+  <span class="title">🎬 HARZ Video Creator</span>
+</div>
+
+<div class="container">
+  <div class="section">
+    <h3>Video Settings</h3>
+    <label>Video Title (shows at start)</label>
+    <input type="text" id="vidTitle" placeholder="e.g. HARZ Digital Learning Promo">
+    <label>Aspect Ratio</label>
+    <select id="aspect">
+      <option value="16:9">16:9 (YouTube/Landscape)</option>
+      <option value="9:16">9:16 (TikTok/Reels/Portrait)</option>
+      <option value="1:1">1:1 (Instagram Square)</option>
+    </select>
+    <label>Duration per slide (seconds)</label>
+    <select id="slideDur">
+      <option value="2">2 seconds</option>
+      <option value="3" selected>3 seconds</option>
+      <option value="4">4 seconds</option>
+      <option value="5">5 seconds</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>Quick Presets</h3>
+    <span class="preset-btn" onclick="loadPreset('promo')">📢 Product Promo</span>
+    <span class="preset-btn" onclick="loadPreset('sale')">🔥 Sale Post</span>
+    <span class="preset-btn" onclick="loadPreset('intro')">👋 Brand Intro</span>
+    <span class="preset-btn" onclick="loadPreset('quote')">💬 Quote Video</span>
+  </div>
+
+  <div class="section">
+    <h3>Slides</h3>
+    <div id="slidesContainer"></div>
+    <button class="btn btn-secondary" onclick="addSlide()" style="margin-top:8px">+ Add Slide</button>
+  </div>
+
+  <div class="section">
+    <h3>Preview & Generate</h3>
+    <div class="preview-area">
+      <canvas id="previewCanvas" width="1280" height="720"></canvas>
+    </div>
+    <div class="status" id="status">Add slides, then click Generate</div>
+    <button class="btn" id="genBtn" onclick="generateVideo()">🎬 Generate Video</button>
+    <div class="video-result" id="result"></div>
+  </div>
+</div>
+
+<script>
+let slides = [];
+let canvas, ctx;
+let mediaRecorder = null;
+let chunks = [];
+let isGenerating = false;
+
+function init() {
+  canvas = document.getElementById('previewCanvas');
+  ctx = canvas.getContext('2d');
+  updateCanvasSize();
+  addSlide(); // Start with one slide
+  drawPreview(0);
+}
+
+function updateCanvasSize() {
+  const aspect = document.getElementById('aspect').value;
+  if (aspect === '9:16') { canvas.width = 720; canvas.height = 1280; }
+  else if (aspect === '1:1') { canvas.width = 1080; canvas.height = 1080; }
+  else { canvas.width = 1280; canvas.height = 720; }
+}
+
+function addSlide(text = '', subtitle = '', image = null, bgColor = '#1a1a2e') {
+  const slide = { id: Date.now() + Math.random(), text, subtitle, image, bgColor, animation: 'fade' };
+  slides.push(slide);
+  renderSlides();
+  drawPreview(slides.length - 1);
+}
+
+function deleteSlide(id) {
+  slides = slides.filter(s => s.id !== id);
+  renderSlides();
+  if (slides.length > 0) drawPreview(0);
+}
+
+function updateSlide(id, field, value) {
+  const slide = slides.find(s => s.id === id);
+  if (slide) {
+    slide[field] = value;
+    const idx = slides.indexOf(slide);
+    drawPreview(idx);
+  }
+}
+
+function handleSlideImage(id, file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const slide = slides.find(s => s.id === id);
+    if (slide) {
+      slide.image = e.target.result;
+      renderSlides();
+      const idx = slides.indexOf(slide);
+      drawPreview(idx);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderSlides() {
+  const container = document.getElementById('slidesContainer');
+  container.innerHTML = '';
+  slides.forEach((slide, i) => {
+    const div = document.createElement('div');
+    div.className = 'slide-item';
+    div.innerHTML = `
+      <button class="slide-del" onclick="deleteSlide(${slide.id})">&times;</button>
+      <div class="slide-num">Slide ${i + 1}</div>
+      <input type="text" placeholder="Main text (e.g. Learn Python in 30 days)" value="${escapeAttr(slide.text)}" oninput="updateSlide(${slide.id}, 'text', this.value)">
+      <input type="text" placeholder="Subtitle (e.g. Only N2,500)" value="${escapeAttr(slide.subtitle)}" oninput="updateSlide(${slide.id}, 'subtitle', this.value)">
+      <label>Background color</label>
+      <input type="text" placeholder="#1a1a2e" value="${slide.bgColor}" oninput="updateSlide(${slide.id}, 'bgColor', this.value)" style="margin-bottom:6px">
+      <label>Image (optional)</label>
+      <div class="file-btn" onclick="document.getElementById('imgInput_${slide.id}').click()">
+        ${slide.image ? '<img src="' + slide.image + '" style="width:100%;border-radius:8px">' : '📷 Tap to upload image'}
+      </div>
+      <input type="file" id="imgInput_${slide.id}" accept="image/*" style="display:none" onchange="handleSlideImage(${slide.id}, this.files[0])">
+    `;
+    container.appendChild(div);
+  });
+}
+
+function escapeAttr(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+function drawPreview(idx) {
+  const slide = slides[idx];
+  if (!slide) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#666';
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Add a slide to preview', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  drawSlide(slide, 1.0);
+}
+
+function drawSlide(slide, progress) {
+  // Background
+  ctx.fillStyle = slide.bgColor || '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Gradient overlay
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, 'rgba(108,99,255,0.15)');
+  grad.addColorStop(1, 'rgba(0,212,160,0.1)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Image
+  if (slide.image) {
+    const img = new Image();
+    img.src = slide.image;
+    try {
+      const imgW = canvas.width * 0.8;
+      const imgH = canvas.height * 0.5;
+      const imgX = (canvas.width - imgW) / 2;
+      const imgY = canvas.height * 0.1;
+      ctx.save();
+      ctx.globalAlpha = progress;
+      ctx.beginPath();
+      ctx.roundRect(imgX, imgY, imgW, imgH, 20);
+      ctx.clip();
+      ctx.drawImage(img, imgX, imgY, imgW, imgH);
+      ctx.restore();
+    } catch(e) {}
+  }
+
+  // Text
+  const fontSize = Math.round(canvas.width / 18);
+  ctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  
+  // Fade in text
+  const textY = slide.image ? canvas.height * 0.75 : canvas.height * 0.4;
+  ctx.globalAlpha = Math.min(progress * 1.5, 1);
+  ctx.fillText(slide.text || '', canvas.width / 2, textY);
+  
+  // Subtitle
+  if (slide.subtitle) {
+    ctx.font = `${Math.round(fontSize * 0.6)}px sans-serif`;
+    ctx.fillStyle = '#00d4a0';
+    ctx.fillText(slide.subtitle, canvas.width / 2, textY + fontSize * 0.9);
+  }
+  
+  // Watermark
+  ctx.globalAlpha = 0.5;
+  ctx.font = `${Math.round(fontSize * 0.35)}px sans-serif`;
+  ctx.fillStyle = '#888';
+  ctx.fillText('HARZ Digital Services', canvas.width / 2, canvas.height - 30);
+  ctx.globalAlpha = 1;
+}
+
+async function generateVideo() {
+  if (slides.length === 0) { alert('Add at least one slide'); return; }
+  if (isGenerating) return;
+
+  isGenerating = true;
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('status').className = 'status recording';
+  document.getElementById('status').textContent = '🔴 Recording... ' + slides.length + ' slides';
+
+  chunks = [];
+  const stream = canvas.captureStream(30);
+  
+  // Try different mime types
+  let mimeType = 'video/webm;codecs=vp9';
+  if (!MediaRecorder.isTypeSupported(mimeType)) {
+    mimeType = 'video/webm;codecs=vp8';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'video/webm';
+    }
+  }
+  
+  mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 3000000 });
+  
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
+  
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const title = document.getElementById('vidTitle').value || 'harz-video';
+    
+    document.getElementById('result').innerHTML = `
+      <h3 style="color:var(--accent);font-size:14px;margin-bottom:8px">✅ Video Ready!</h3>
+      <video src="${url}" controls autoplay loop></video>
+      <br>
+      <a href="${url}" download="${title}.webm" class="download-btn">⬇ Download Video</a>
+    `;
+    
+    isGenerating = false;
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('status').className = 'status';
+    document.getElementById('status').textContent = '✅ Video generated! ' + slides.length + ' slides';
+  };
+  
+  mediaRecorder.start();
+  
+  // Play through slides
+  const slideDur = parseInt(document.getElementById('slideDur').value) * 1000;
+  const titleText = document.getElementById('vidTitle').value;
+  
+  // Title slide
+  if (titleText) {
+    drawTitleSlide(titleText);
+    await sleep(2000);
+  }
+  
+  // Draw each slide with animation
+  for (let i = 0; i < slides.length; i++) {
+    document.getElementById('status').textContent = `🔴 Recording slide ${i + 1}/${slides.length}...`;
+    await animateSlide(slides[i], slideDur);
+  }
+  
+  // End slide
+  drawEndSlide();
+  await sleep(2000);
+  
+  mediaRecorder.stop();
+}
+
+function drawTitleSlide(title) {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width/2);
+  grad.addColorStop(0, 'rgba(108,99,255,0.3)');
+  grad.addColorStop(1, 'rgba(26,26,46,1)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const fontSize = Math.round(canvas.width / 12);
+  ctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(title, canvas.width / 2, canvas.height / 2);
+  
+  ctx.font = `${Math.round(fontSize * 0.35)}px sans-serif`;
+  ctx.fillStyle = '#00d4a0';
+  ctx.fillText('HARZ Digital Services', canvas.width / 2, canvas.height / 2 + fontSize);
+}
+
+function drawEndSlide() {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const fontSize = Math.round(canvas.width / 15);
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#00d4a0';
+  ctx.fillText('Thank You!', canvas.width / 2, canvas.height * 0.4);
+  
+  ctx.font = `${Math.round(fontSize * 0.5)}px sans-serif`;
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Get yours today', canvas.width / 2, canvas.height * 0.55);
+  
+  ctx.font = `${Math.round(fontSize * 0.4)}px sans-serif`;
+  ctx.fillStyle = '#6c63ff';
+  ctx.fillText('hamzarabiu.gumroad.com', canvas.width / 2, canvas.height * 0.68);
+  
+  ctx.font = `${Math.round(fontSize * 0.3)}px sans-serif`;
+  ctx.fillStyle = '#888';
+  ctx.fillText('HARZ Digital Services', canvas.width / 2, canvas.height - 40);
+}
+
+async function animateSlide(slide, duration) {
+  const steps = 60;
+  const stepDur = duration / steps;
+  
+  for (let i = 0; i <= steps; i++) {
+    const progress = i / steps;
+    drawSlide(slide, progress);
+    await sleep(stepDur);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Presets
+function loadPreset(type) {
+  slides = [];
+  document.getElementById('vidTitle').value = '';
+  
+  if (type === 'promo') {
+    document.getElementById('vidTitle').value = 'HARZ Digital Learning';
+    addSlide('Learn Python Programming', 'Only N2,500', null, '#1a1a2e');
+    addSlide('Master Graphic Design with Canva', 'N2,500 only', null, '#16213e');
+    addSlide('Complete 12-Book Bundle', 'N6,000 (Save N30,000!)', null, '#0f3460');
+    addSlide('Get Yours Today', 'hamzarabiu.gumroad.com', null, '#1a1a2e');
+  } else if (type === 'sale') {
+    document.getElementById('vidTitle').value = '🔥 BIG SALE';
+    addSlide('50% OFF This Week Only!', '', null, '#e74c3c');
+    addSlide('All Digital Products', 'N2,000 - N5,000', null, '#c0392b');
+    addSlide('12 Books Bundle', 'N6,000 instead of N30,000', null, '#e67e22');
+    addSlide('Buy Now!', 'Pay: UBA 2034326424', null, '#e74c3c');
+  } else if (type === 'intro') {
+    document.getElementById('vidTitle').value = 'HARZ Digital Services';
+    addSlide('We are HARZ', 'Digital Solutions for Africa', null, '#1a1a2e');
+    addSlide('300+ Digital Products', '45 Categories', null, '#16213e');
+    addSlide('10 Platforms', 'One Ecosystem', null, '#0f3460');
+    addSlide('Pay Any Way', 'Bank, Card, Crypto, GDEG', null, '#533483');
+    addSlide('Join Us Today', 'harzdm.vercel.app', null, '#1a1a2e');
+  } else if (type === 'quote') {
+    document.getElementById('vidTitle').value = '';
+    addSlide('"Ilimi shine makamin manja"', '', null, '#2c3e50');
+    addSlide('"Education is the most powerful weapon"', '— Nelson Mandela', null, '#34495e');
+    addSlide('"Knowledge is power"', '— Francis Bacon', null, '#2c3e50');
+    addSlide('Start Learning Today', 'HARZ Digital Learning', null, '#1a1a2e');
+  }
+  
+  document.getElementById('aspect').value = '9:16';
+  updateCanvasSize();
+  drawPreview(0);
+}
+
+// Init
+document.getElementById('aspect').addEventListener('change', () => {
+  updateCanvasSize();
+  drawPreview(0);
+});
+
+init();
+</script>
+</body>
+</html>
